@@ -1,0 +1,12 @@
+[package]
+name = "rmc"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+glutin = "0.28.0"
+gl33 = "0.2.1"
+ultraviolet = { version = "0.6", features = [ "f64", "int" ] }
+rand = "0.8.5"
