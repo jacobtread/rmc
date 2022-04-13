@@ -1,6 +1,8 @@
 use core::panicking::panic;
+use core::slice::SlicePattern;
 use std::collections::HashMap;
 use std::f32::NAN;
+use std::path::Prefix::Verbatim;
 use std::ptr;
 use std::ptr::eq;
 
@@ -187,8 +189,10 @@ impl VertexFormatElement {
 
 #[derive(Debug)]
 pub struct VertexFormat {
-    attr_names: &'static [&'static str],
-    elements: &'static [&'static VertexFormatElement],
+    pub attr_names: &'static [&'static str],
+    pub elements: &'static [&'static VertexFormatElement],
+    pub size: usize,
+    pub offsets: Vec<usize>,
 }
 
 pub struct C(pub u8);
@@ -200,10 +204,22 @@ impl VertexFormat {
         names: &'static [&'static str],
         values: &'static [&'static VertexFormatElement],
     ) -> VertexFormat {
+        let mut offsets = Vec::with_capacity(values.len());
+        let mut size = 0;
+        for x in values {
+            offsets.push(size);
+            size += x.byte_length();
+        }
         VertexFormat {
             attr_names: names,
             elements: values,
+            offsets,
+            size,
         }
+    }
+
+    fn get_vertex_size_integer(&self) -> usize {
+        self.size / 4
     }
 }
 
@@ -373,8 +389,31 @@ impl BufferBuilder {
         self.buffer[self.element_offset + index + 3] = v[3];
     }
 
-    pub fn get_float(&mut self, index: usize) -> f32 {
-        0.0
+    pub fn get_float(&self, index: usize) -> f32 {
+        let bytes = self.buffer[index..(index + 4)] as [u8; 4];
+        f32::from_be_bytes(bytes)
+    }
+
+    pub fn get_parameter_vec(&self) -> Vec<Vec3> {
+        let i = self.build_start / 4;
+        let j = self.format.unwrap().get_vertex_size_integer();
+        let dms = self.draw_mode.unwrap().size();
+        let k = j * dms;
+        let l = self.vertex_count / dms;
+        let mut params = Vec::with_capacity(l);
+        for m in 0..l {
+            let f = self.get_float(i + m * k);
+            let g = self.get_float(i + m * k + 1);
+            let h = self.get_float(i + m * k + 2);
+            let n = self.get_float(i + m * k + j * 2);
+            let o = self.get_float(i + m * k + j * 2 + 1);
+            let p = self.get_float(i + m * k + j * 2 + 2);
+            let q = (f + n) / 2.0;
+            let r = (g + o) / 2.0;
+            let s = (h + p) / 2.0;
+            params.push(Vec3::new(q, r, s))
+        }
+        params
     }
 
     pub fn pop_state(&self) -> State {
@@ -447,6 +486,18 @@ enum DrawMode {
 }
 
 impl DrawMode {
+    pub fn size(&self) -> usize {
+        match self {
+            DrawMode::LineStrip
+            | DrawMode::DebugLineStrip
+            | DrawMode::TriangleStrip
+            | DrawMode::TriangleFan => 1,
+            DrawMode::Lines | DrawMode::DebugLines => 2,
+            DrawMode::Triangles => 3,
+            DrawMode::Quads => 4,
+        }
+    }
+
     pub fn get_size(&self, vertex_count: usize) -> usize {
         match self {
             DrawMode::Lines | DrawMode::Quads => vertex_count,
