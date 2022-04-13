@@ -5,10 +5,19 @@ use glutin::dpi::LogicalSize;
 use glutin::event::{Event, WindowEvent};
 use glutin::event_loop::{ControlFlow, EventLoop};
 use glutin::window::WindowBuilder;
+
+use crate::resources::{Identifier, Resources};
 use crate::types::GLsizei;
 use crate::window::Framebuffer;
 
 pub struct Game {}
+
+fn load_end() {
+    let end_text_ident = Identifier::new("minecraft", "texts/end.txt");
+    let end_text = Resources::get_utf8(&end_text_ident)
+        .expect("end texts missing");
+    println!("{}", end_text)
+}
 
 impl Game {
     pub fn new() -> Game {
@@ -16,6 +25,7 @@ impl Game {
     }
 
     pub fn start(&mut self) {
+        load_end();
         let el = EventLoop::new();
         let wb = WindowBuilder::new()
             .with_title("Rust MC")
@@ -47,13 +57,13 @@ impl Game {
                 Event::WindowEvent { event, .. } => match event {
                     WindowEvent::Resized(physical_size) => context.resize(physical_size),
                     WindowEvent::CloseRequested => *control_flow = ControlFlow::Exit,
-                    WindowEvent::KeyboardInput {input, .. } => {
-                        println!("{}",input.scancode);
+                    WindowEvent::KeyboardInput { input, .. } => {
+                        println!("{}", input.scancode);
                     }
                     _ => (),
                 },
                 Event::RedrawRequested(_) => unsafe {
-                    glClearColor(1f32,1f32,1f32,1f32);
+                    glClearColor(1f32, 1f32, 1f32, 1f32);
                     glClear(GL_COLOR_BUFFER_BIT);
                     context.swap_buffers().unwrap();
                 }

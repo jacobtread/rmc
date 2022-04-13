@@ -122,9 +122,9 @@ static mut STENCIL_STATE: StencilState = StencilState {
     sub_state: StencilSubState {
         func: GL_ALWAYS,
         ref_: 0,
-        mask: -1,
+        mask: 0,
     },
-    mask: -1,
+    mask: 0,
     sfail: GL_KEEP,
     dpfail: GL_KEEP,
     dppass: GL_KEEP,

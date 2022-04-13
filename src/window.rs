@@ -4,7 +4,7 @@ use std::ptr::null;
 use gl33::*;
 use gl33::global_loader::*;
 
-use crate::rutil::{bind_texture, gen_texture_id, max_supported_texture_size};
+use crate::rutil::{bind_texture, color_mask, depth_mask, disable_blend, disable_depth_test, gen_texture_id, max_supported_texture_size, viewport};
 use crate::types::{GLint, GLsizei, GLuint};
 
 #[derive(Debug, Clone, Copy)]
@@ -153,8 +153,14 @@ impl Framebuffer {
     }
 
 
-    unsafe fn draw(&self, width: GLsizei, height: GLsizei, disable_blend: bool) {
-        glColorMask(1, 1, 1, 0);
+    unsafe fn draw(&self, width: GLsizei, height: GLsizei, no_blend: bool) {
+        color_mask(1, 1, 1, 0);
+        disable_depth_test();
+        depth_mask(false);
+        viewport(0, 0, width, height);
+        if no_blend {
+            disable_blend();
+        }
     }
 
     unsafe fn get_bound() -> GLint {
