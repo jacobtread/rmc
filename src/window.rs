@@ -4,8 +4,8 @@ use std::ptr::null;
 use gl33::*;
 use gl33::global_loader::*;
 
-use crate::texture::{bind_texture, gen_texture_id, max_supported_texture_size, unbind_texture};
-use crate::types::{GLsizei, GLuint};
+use crate::rutil::{bind_texture, gen_texture_id, max_supported_texture_size};
+use crate::types::{GLint, GLsizei, GLuint};
 
 #[derive(Debug, Clone, Copy)]
 struct Size(GLsizei, GLsizei);
@@ -58,7 +58,7 @@ impl Framebuffer {
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, 0x812f);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, 0x812f);
             glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, framebuffer.depth_attachment.unwrap().0, 0);
-            unbind_texture();
+            bind_texture(GL_ZERO);
             framebuffer.viewport_width = framebuffer.size.0;
             framebuffer.viewport_width = framebuffer.size.1;
             framebuffer.texture_width = framebuffer.size.1;
@@ -131,7 +131,7 @@ impl Framebuffer {
     }
 
     unsafe fn end_read(&self) {
-        unbind_texture();
+        bind_texture(GL_ZERO);
     }
 
     unsafe fn bind(&self, update_viewport: bool) {
@@ -155,5 +155,11 @@ impl Framebuffer {
 
     unsafe fn draw(&self, width: GLsizei, height: GLsizei, disable_blend: bool) {
         glColorMask(1, 1, 1, 0);
+    }
+
+    unsafe fn get_bound() -> GLint {
+        let mut value = 0;
+        glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &mut value);
+        value
     }
 }

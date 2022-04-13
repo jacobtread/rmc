@@ -2,7 +2,7 @@ use crate::game::Game;
 
 mod game;
 mod window;
-mod texture;
+mod rutil;
 mod types;
 
 fn main() {
