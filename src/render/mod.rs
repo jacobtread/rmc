@@ -347,6 +347,7 @@ struct BufferBuilder {
     draw_mode: Option<DrawMode>,
     current_parameters: Option<Vec<Vec3>>,
     camera: Vec3,
+    parameters: Vec<DrawArrayParameters>,
 }
 
 impl BufferBuilder {
@@ -368,6 +369,7 @@ impl BufferBuilder {
             draw_mode: None,
             current_parameters: None,
             camera: Vec3::new(f32::NAN, f32::NAN, f32::NAN),
+            parameters: Vec::new(),
         }
     }
 
@@ -392,6 +394,18 @@ impl BufferBuilder {
     pub fn get_float(&self, index: usize) -> f32 {
         let bytes = self.buffer[index..(index + 4)] as [u8; 4];
         f32::from_be_bytes(bytes)
+    }
+
+    pub fn set_camera_position(&mut self, camera: Vec3) {
+        if self.draw_mode.is_some() {
+            if let DrawMode::Quads = self.draw_mode.unwrap() {
+                return;
+            }
+            self.camera = camera;
+            if self.current_parameters.is_none() {
+                self.current_parameters = Some(self.get_parameter_vec());
+            }
+        }
     }
 
     pub fn get_parameter_vec(&self) -> Vec<Vec3> {
@@ -463,6 +477,44 @@ impl BufferBuilder {
         let bl2 = eq(format, VertexFormat::POSITION_COLOR_TEXTURE_LIGHT_NORMAL);
         self.textures = bl || bl2;
         self.has_overlay = bl;
+    }
+
+    pub fn reset(&mut self) {
+        self.build_start = 0;
+        self.next_draw_start = 0;
+        self.element_offset = 0;
+        self.current_parameters = None;
+        self.last_parameter_index = 0;
+    }
+
+    pub fn pop_data() -> (DrawArrayParameters, Vec<u8>) {}
+}
+
+struct DrawArrayParameters {
+    vertex_format: VertexFormat,
+    count: usize,
+    vertex_count: usize,
+    draw_mode: DrawMode,
+    element_format: IntType,
+    camera_offset: bool,
+    textured: bool,
+}
+
+impl DrawArrayParameters {
+    pub fn get_limit(&self) -> usize {
+        self.count * self.vertex_format.size
+    }
+
+    pub fn get_draw_length(&self) -> usize {
+        if self.textured {
+            0
+        } else {
+            self.vertex_count * self.element_format.size()
+        }
+    }
+
+    pub fn get_draw_start(&self) -> usize {
+        self.get_limit() + self.get_draw_length()
     }
 }
 
