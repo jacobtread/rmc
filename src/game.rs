@@ -53,7 +53,7 @@ impl Game {
                     _ => (),
                 },
                 Event::RedrawRequested(_) => unsafe {
-                    glClearColor(0f32,1f32,1f32,1f32);
+                    glClearColor(1f32,1f32,1f32,1f32);
                     glClear(GL_COLOR_BUFFER_BIT);
                     context.swap_buffers().unwrap();
                 }

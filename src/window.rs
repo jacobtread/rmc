@@ -45,7 +45,6 @@ impl Framebuffer {
             glGenFramebuffers(1, &mut fbo);
             framebuffer.fbo = Some(fbo);
             glBindFramebuffer(GL_FRAMEBUFFER, fbo);
-
             bind_texture(framebuffer.color_attachment.unwrap());
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, 0x2600);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, 0x2600);
@@ -64,16 +63,32 @@ impl Framebuffer {
             framebuffer.viewport_width = framebuffer.size.1;
             framebuffer.texture_width = framebuffer.size.1;
             framebuffer.texture_height = framebuffer.size.1;
-            let status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
-            if status != GL_FRAMEBUFFER_COMPLETE {
-                eprintln!("Framebuffer error status {:?}", status);
-                panic!();;
-            }
+            framebuffer.check_status();
             glBindFramebuffer(GL_FRAMEBUFFER, 0)
         }
         framebuffer
     }
 
+    unsafe fn check_status(&self) {
+        let status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+        if status != GL_FRAMEBUFFER_COMPLETE {
+            if status == GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT {
+                panic!("Failed to create framebuffer: GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT")
+            } else if status == GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT {
+                panic!("Failed to create framebuffer: GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT")
+            } else if status == GL_FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER {
+                panic!("Failed to create framebuffer: GL_FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER")
+            } else if status == GL_FRAMEBUFFER_INCOMPLETE_READ_BUFFER {
+                panic!("Failed to create framebuffer: GL_FRAMEBUFFER_INCOMPLETE_READ_BUFFER")
+            } else if status == GL_FRAMEBUFFER_UNSUPPORTED {
+                panic!("Failed to create framebuffer: GL_FRAMEBUFFER_UNSUPPORTED")
+            } else if status == GL_OUT_OF_MEMORY {
+                panic!("Failed to create framebuffer: GL_OUT_OF_MEMORY")
+            } else {
+                panic!("Failed to create framebuffer: {:?}", status);
+            }
+        }
+    }
 
     unsafe fn is_compatible(&self, size: Size) -> bool {
         self.supports_color(&size) && self.supports_depth(&size)
@@ -102,10 +117,21 @@ impl Framebuffer {
         glTexImage2D(GL_TEXTURE_2D, 0, 0x8058, size.0, size.1, 0, GL_RGBA, GL_UNSIGNED_BYTE, null());
         return glGetError() != GL_OUT_OF_MEMORY;
     }
+
     unsafe fn supports_depth(&self, size: &Size) -> bool {
         glGetError();
         bind_texture(self.depth_attachment.unwrap());
         glTexImage2D(GL_TEXTURE_2D, 0, 0x1902, size.0, size.1, 0, GL_DEPTH_COMPONENT, GL_FLOAT, null());
         return glGetError() != GL_OUT_OF_MEMORY;
     }
+
+
+    unsafe fn begin_read(&self) {
+        bind_texture(self.color_attachment.unwrap());
+    }
+
+    unsafe fn end_read(&self) {
+        unbind_texture();
+    }
+
 }

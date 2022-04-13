@@ -13,18 +13,9 @@ struct TextureState {
     bound: Option<TextureUnit>,
 }
 
-#[derive(Debug)]
-struct Textures {
-    active_texture: TextureUnit,
-    textures: [TextureState; 12],
-    max_supported_texture_size: Option<GLsizei>,
-}
-
-const TEXTURES: Textures = Textures {
-    active_texture: GL_ZERO,
-    textures: [TextureState { cap_state: false, bound: None }; 12],
-    max_supported_texture_size: None,
-};
+static mut ACTIVE_TEXTURE: usize = 0;
+static mut TEXTURES: [TextureState; 12] = [TextureState { cap_state: false, bound: None }; 12];
+static mut MAX_SUPPORTED_TEXTURE_SIZE: Option<GLsizei> = None;
 
 pub fn gen_texture_id() -> TextureUnit {
     let mut value = 0;
@@ -33,7 +24,7 @@ pub fn gen_texture_id() -> TextureUnit {
 }
 
 pub fn bind_texture(texture: TextureUnit) {
-    let at = &mut TEXTURES.textures[TEXTURES.active_texture.0 as usize];
+    let at = unsafe { &mut TEXTURES[ACTIVE_TEXTURE] };
     if let Some(value) = at.bound {
         if texture != value {
             at.bound = Some(texture);
@@ -46,16 +37,16 @@ pub fn bind_texture(texture: TextureUnit) {
 }
 
 pub fn unbind_texture() {
-    let at = &mut TEXTURES.textures[TEXTURES.active_texture.0 as usize];
+    let at = unsafe { &mut TEXTURES[ACTIVE_TEXTURE] };
     if let Some(value) = at.bound {
         at.bound = None;
         unsafe { glBindTexture(GL_TEXTURE_2D, 0); }
     }
 }
 
-pub fn delete_texture(texture: TextureUnit) {
-    unsafe { glDeleteTextures(1, &texture.0) }
-    TEXTURES.textures.iter_mut().for_each(|v| {
+pub unsafe fn delete_texture(texture: TextureUnit) {
+    glDeleteTextures(1, &texture.0);
+    TEXTURES.iter_mut().for_each(|v| {
         if let Some(value) = v.bound {
             if value == texture {
                 v.bound = None
@@ -64,23 +55,24 @@ pub fn delete_texture(texture: TextureUnit) {
     });
 }
 
-pub fn set_active_texture(texture: TextureUnit) {
-    if TEXTURES.active_texture != texture {
-        TEXTURES.active_texture = texture;
-        unsafe { glActiveTexture(texture) }
+pub unsafe fn set_active_texture(texture: TextureUnit) {
+    let ts = texture.0 as usize;
+    if ACTIVE_TEXTURE != ts {
+        ACTIVE_TEXTURE = ts;
+        glActiveTexture(texture);
     }
 }
 
-pub fn enable_texture() {
-   TEXTURES.textures[TEXTURES.active_texture.0 as usize].cap_state = true;
+pub unsafe fn enable_texture() {
+    TEXTURES[ACTIVE_TEXTURE].cap_state = true;
 }
 
-pub fn disable_texture() {
-    TEXTURES.textures[TEXTURES.active_texture.0 as usize].cap_state = false;
+pub unsafe fn disable_texture() {
+    TEXTURES[ACTIVE_TEXTURE].cap_state = false;
 }
 
-pub fn max_supported_texture_size() -> GLsizei {
-    match TEXTURES.max_supported_texture_size {
+pub unsafe fn max_supported_texture_size() -> GLsizei {
+    match MAX_SUPPORTED_TEXTURE_SIZE {
         None => {
             let mut max_size = 0;
             unsafe { glGetIntegerv(GL_MAX_TEXTURE_SIZE, &mut max_size); }
@@ -97,7 +89,7 @@ pub fn max_supported_texture_size() -> GLsizei {
             }
 
             i = max(i, 1024);
-            TEXTURES.max_supported_texture_size = Some(i);
+            MAX_SUPPORTED_TEXTURE_SIZE = Some(i);
             i
         }
         Some(value) => value
