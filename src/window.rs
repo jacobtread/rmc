@@ -134,4 +134,26 @@ impl Framebuffer {
         unbind_texture();
     }
 
+    unsafe fn bind(&self, update_viewport: bool) {
+        glBindFramebuffer(GL_FRAMEBUFFER, self.fbo.unwrap());
+        if update_viewport {
+            glViewport(0, 0, self.viewport_width, self.viewport_height);
+        }
+    }
+
+    unsafe fn unbind(&self) {
+        glBindFramebuffer(GL_FRAMEBUFFER, 0)
+    }
+
+    fn set_clear_color(&mut self, r: f32, g: f32, b: f32, a: f32) {
+        self.clear_color[0] = r;
+        self.clear_color[1] = g;
+        self.clear_color[2] = b;
+        self.clear_color[3] = a;
+    }
+
+
+    unsafe fn draw(&self, width: GLsizei, height: GLsizei, disable_blend: bool) {
+        glColorMask(1, 1, 1, 0);
+    }
 }
