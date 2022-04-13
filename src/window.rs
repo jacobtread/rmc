@@ -4,7 +4,7 @@ use std::ptr::null;
 use gl33::*;
 use gl33::global_loader::*;
 
-use crate::rutil::{bind_texture, color_mask, depth_mask, disable_blend, disable_depth_test, gen_texture_id, max_supported_texture_size, viewport};
+use crate::render::util::{bind_texture, color_mask, depth_mask, disable_blend, disable_depth_test, gen_texture_id, max_supported_texture_size, viewport};
 use crate::types::{GLint, GLsizei, GLuint};
 
 #[derive(Debug, Clone, Copy)]
