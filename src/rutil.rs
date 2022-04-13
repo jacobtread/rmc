@@ -65,15 +65,22 @@ struct Texture2DState {
 struct StencilSubState {
     func: StencilFunction,
     ref_: GLint,
-    mask: GLint,
+    mask: GLuint,
 }
 
 struct StencilState {
     sub_state: StencilSubState,
-    mask: GLint,
+    mask: GLuint,
     sfail: StencilOp,
     dpfail: StencilOp,
     dppass: StencilOp,
+}
+
+struct Viewport {
+    x: GLint,
+    y: GLint,
+    width: GLsizei,
+    height: GLsizei,
 }
 
 // red, green, blue, alpha
@@ -122,7 +129,13 @@ static mut STENCIL_STATE: StencilState = StencilState {
     dpfail: GL_KEEP,
     dppass: GL_KEEP,
 };
-
+static mut VIEWPORT: Viewport = Viewport {
+    x: 0,
+    y: 0,
+    width: 0,
+    height: 0,
+};
+static mut COLOR_MASK: ColorMask = ColorMask(1, 1, 1, 1);
 
 pub fn gen_texture_id() -> TextureUnit {
     let mut value = 0;
@@ -164,7 +177,7 @@ pub unsafe fn delete_textures(textures: Vec<TextureUnit>) {
             });
         }
     });
-    let va: Vec<GLuint> = textures.iter().map(|v|v.0).collect();
+    let va: Vec<GLuint> = textures.iter().map(|v| v.0).collect();
     glDeleteTextures(va.len() as GLsizei, va.as_ptr());
 }
 
@@ -304,3 +317,49 @@ pub unsafe fn logic_op(op: LogicOp) {
     }
 }
 
+pub unsafe fn viewport(x: GLint, y: GLint, width: GLsizei, height: GLsizei) {
+    VIEWPORT.x = x;
+    VIEWPORT.y = y;
+    VIEWPORT.width = width;
+    VIEWPORT.height = height;
+    glViewport(x, y, width, height)
+}
+
+pub unsafe fn color_mask(red: GLboolean, green: GLboolean, blue: GLboolean, alpha: GLboolean) {
+    if red != COLOR_MASK.0 ||
+        green != COLOR_MASK.1 ||
+        blue != COLOR_MASK.2 ||
+        alpha != COLOR_MASK.3 {
+        COLOR_MASK.0 = red;
+        COLOR_MASK.1 = green;
+        COLOR_MASK.2 = blue;
+        COLOR_MASK.3 = alpha;
+        glColorMask(red, green, blue, alpha)
+    }
+}
+
+pub unsafe fn stencil_func(func: StencilFunction, ref_: GLint, mask: GLuint) {
+    let s = &mut STENCIL_STATE.sub_state;
+    if s.func != func || s.ref_ != ref_ || s.mask != mask {
+        s.func = func;
+        s.ref_ = ref_;
+        s.mask = mask;
+        glStencilFunc(func, ref_, mask)
+    }
+}
+
+pub unsafe fn stencil_mask(mask: GLuint) {
+    if mask != STENCIL_STATE.mask {
+        STENCIL_STATE.mask = mask;
+        glStencilMask(mask);
+    }
+}
+
+pub unsafe fn stencil_op(sfail: StencilOp, dpfail: StencilOp, dppass: StencilOp) {
+    if sfail != STENCIL_STATE.sfail || dpfail != STENCIL_STATE.dpfail || dppass != STENCIL_STATE.dppass {
+        STENCIL_STATE.sfail = sfail;
+        STENCIL_STATE.dpfail = dpfail;
+        STENCIL_STATE.dppass = dppass;
+        glStencilOp(sfail, dpfail, dppass);
+    }
+}
