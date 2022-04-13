@@ -1,10 +1,11 @@
-use gl33::*;
+use crate::render::VertexFormat;
 use gl33::global_loader::*;
-use glutin::{Api, ContextBuilder, GlRequest};
+use gl33::*;
 use glutin::dpi::LogicalSize;
 use glutin::event::{Event, WindowEvent};
 use glutin::event_loop::{ControlFlow, EventLoop};
 use glutin::window::WindowBuilder;
+use glutin::{Api, ContextBuilder, GlRequest};
 
 use crate::resources::{Identifier, Resources};
 use crate::types::GLsizei;
@@ -14,9 +15,8 @@ pub struct Game {}
 
 fn load_end() {
     let end_text_ident = Identifier::new("minecraft", "texts/end.txt");
-    let end_text = Resources::get_utf8(&end_text_ident)
-        .expect("end texts missing");
-    println!("{}", end_text)
+    let end_text = Resources::get_utf8(&end_text_ident).expect("end texts missing");
+    println!("{}", end_text);
 }
 
 impl Game {
@@ -48,7 +48,6 @@ impl Game {
 
         let fb = Framebuffer::new(fb_size.width as GLsizei, fb_size.height as GLsizei);
 
-
         el.run(move |event, _, control_flow| {
             *control_flow = ControlFlow::Wait;
 
@@ -66,7 +65,7 @@ impl Game {
                     glClearColor(1f32, 1f32, 1f32, 1f32);
                     glClear(GL_COLOR_BUFFER_BIT);
                     context.swap_buffers().unwrap();
-                }
+                },
                 _ => (),
             }
         });
