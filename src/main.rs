@@ -4,6 +4,7 @@ extern crate core;
 use crate::game::Game;
 
 mod game;
+mod math;
 mod render;
 mod resources;
 mod types;

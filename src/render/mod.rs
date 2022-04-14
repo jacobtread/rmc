@@ -2,6 +2,7 @@ use core::panicking::panic;
 use core::slice::SlicePattern;
 use std::collections::HashMap;
 use std::f32::NAN;
+use std::io::Cursor;
 use std::path::Prefix::Verbatim;
 use std::ptr;
 use std::ptr::eq;
@@ -14,6 +15,7 @@ use gl33::*;
 use glutin::event::VirtualKeyCode::V;
 use glutin::window::CursorIcon::VerticalText;
 use ultraviolet::Vec3;
+use crate::math::round_up_to_multiple;
 
 use crate::types::{GLint, GLsizei, GLuint};
 
@@ -373,25 +375,25 @@ impl BufferBuilder {
         }
     }
 
-    pub fn put_byte(&mut self, index: usize, value: u8) {
-        self.buffer[self.element_offset + index] = value
+    fn put_byte(&mut self, value: u8) {
+        self.buffer.push(value);
     }
 
-    pub fn put_short(&mut self, index: usize, value: u16) {
+    fn put_short(&mut self, value: u16) {
         let v: [u8; 2] = u16::to_be_bytes(value);
-        self.buffer[self.element_offset + index] = v[0];
-        self.buffer[self.element_offset + index + 1] = v[1];
+        self.buffer.push(v[0]);
+        self.buffer.push(v[1]);
     }
 
-    pub fn put_float(&mut self, index: usize, value: f32) {
+    fn put_float(&mut self,  value: f32) {
         let v: [u8; 4] = f32::to_be_bytes(value);
-        self.buffer[self.element_offset + index] = v[0];
-        self.buffer[self.element_offset + index + 1] = v[1];
-        self.buffer[self.element_offset + index + 2] = v[2];
-        self.buffer[self.element_offset + index + 3] = v[3];
+        self.buffer.push(v[0]);
+        self.buffer.push(v[1]);
+        self.buffer.push(v[2]);
+        self.buffer.push(v[3]);
     }
 
-    pub fn get_float(&self, index: usize) -> f32 {
+    fn get_float(&self, index: usize) -> f32 {
         let bytes = self.buffer[index..(index + 4)] as [u8; 4];
         f32::from_be_bytes(bytes)
     }
@@ -487,11 +489,24 @@ impl BufferBuilder {
         self.last_parameter_index = 0;
     }
 
-    pub fn pop_data() -> (DrawArrayParameters, Vec<u8>) {}
+    pub fn pop_data(&mut self) -> (DrawArrayParameters, Vec<u8>)  {
+        let param = self.parameters[self.last_parameter_index];
+        let start = self.next_draw_start;
+        self.next_draw_start += round_up_to_multiple(param.get_draw_start() as i32, 4) as usize;
+        let end = self.next_draw_start;
+        if self.last_parameter_index == self.parameters.len() && self.vertex_count == 0 {
+            self.clear_buffer()
+        }
+        let values = self.buffer[start..end].to_vec();
+        (param, values)
+    }
+
+    pub fn vertex(x: f32, y: f32, z: f32, r: f32, g: f32, b: f32, a: f32)
 }
 
+#[derive(Clone, Copy)]
 struct DrawArrayParameters {
-    vertex_format: VertexFormat,
+    vertex_format: &'static VertexFormat,
     count: usize,
     vertex_count: usize,
     draw_mode: DrawMode,
@@ -570,6 +585,7 @@ impl Into<PrimitiveType> for DrawMode {
     }
 }
 
+#[derive(Clone, Copy)]
 enum IntType {
     Byte,
     Short,
